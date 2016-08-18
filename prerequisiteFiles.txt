@@ -1,0 +1,9 @@
+Softwaries:
+*NodeJS  - Server
+*npm     - Library Installer
+*sublime - Text Editor
+*chrome  - client(browser)
+
+Libraries:
+*Express   - Delivering Files
+*Socket.io - Communication 
