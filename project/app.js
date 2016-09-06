@@ -13,31 +13,74 @@ serv.listen(2000);  // listening to port 2000 on localhost (localhost:2000)
 var io = require('socket.io') (serv, {});   
 
 var SOCKET_LIST = {};
+var PLAYER_LIST = {};
+
+var Player = function(id){
+    var self = {
+        x:250,
+        y:250,
+        id:id,
+        number:"" + Math.floor(10*Math.random()),
+        pressingRight:false,
+        pressingLeft:false,
+        pressingUp:false,
+        pressingDown:false,
+        maxSpd:10,
+    }
+    
+    self.updatePosition = function() {
+        if(self.pressingRight)
+            self.x += self.maxSpd;
+        if(self.pressingLeft)
+            self.x -= self.maxSpd;
+        if(self.pressingUp)
+            self.y -= self.maxSpd;
+        if(self.pressingDown)
+            self.y += self.maxSpd;
+    }
+    return self;
+}
 
 io.sockets.on('connection', function(socket){
     socket.id = Math.random();
-    socket.x = 0;
-    socket.y = 0;
-    socket.number = "" + Math.floor(10 * Math.random());
     SOCKET_LIST[socket.id] = socket;
+    
+    var player = Player(socket.id);
+    PLAYER_LIST[socket.id] = player;
+    
 	socket.on('disconnect', function(){
+        console.log("Socket disconnected. " + socket.id);
         delete SOCKET_LIST[socket.id];
+        delete PLAYER_LIST[socket.id];
+    })
+    
+    
+	socket.on('keyPress', function(data){
+        console.log("Socket disconnected. " + socket.id);
+        if(data.inputId === 'left')
+            player.pressingLeft = data.state;
+        else if(data.inputId === 'right')
+            player.pressingRight = data.state;
+        else if(data.inputId === 'up')
+            player.pressingUp = data.state;
+        else if(data.inputId === 'down')
+            player.pressingDown = data.state;
     })
 });
 
 setInterval(function(){
     var pack = [];
-    for(var i in SOCKET_LIST){
-        var socket = SOCKET_LIST[i];
-        socket.x++;
-        socket.y++;
+    for(var i in PLAYER_LIST){
+        var player = PLAYER_LIST[i];
+        player.updatePosition();
         pack.push({
-            x:socket.x, 
-            y:socket.y,
-            number:socket.number
+            x:player.x, 
+            y:player.y,
+            number:player.number
         });
     }
     for(var i in SOCKET_LIST){
-        socket.emit('newPosition', pack);
+        var socket = SOCKET_LIST[i];
+        socket.emit('newPositions', pack);
     }
 }, 1000/25);
