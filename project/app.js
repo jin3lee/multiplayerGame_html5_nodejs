@@ -1,19 +1,16 @@
 var express = require('express');
 var app = express();
 var serv = require('http').Server(app);
-
 app.get('/', function(req, res) {
 	res.sendFile('/Users/josephlee/Desktop/rainingChainGuide/project/client/index.html');
 })
 app.use('/client', express.static('/Users/josephlee/Desktop/rainingChainGuide/project/client'));
-
 console.log("Server started."); // messages the server when server started
 serv.listen(2000);  // listening to port 2000 on localhost (localhost:2000)
-
 var io = require('socket.io') (serv, {});   
-
 var SOCKET_LIST = {};
 
+/* Entity */
 var Entity = function(){
     var self = {
         x:250,
@@ -34,7 +31,7 @@ var Entity = function(){
     }
     return self;
 }
-
+/* Player */
 var Player = function(id){
     var self = Entity();
     self.id=id;
@@ -79,31 +76,25 @@ Player.onConnect = function(socket)
         if(data.inputId === 'left')
         {
             player.pressingLeft = data.state;
-            console.log(" pressed left");
         }
         else if(data.inputId === 'right')
         {
             player.pressingRight = data.state;
-            console.log(" pressed right");
         }
         else if(data.inputId === 'up')
         {
             player.pressingUp = data.state;
-            console.log(" pressed up");
         }
         else if(data.inputId === 'down')
         {
             player.pressingDown = data.state;
-            console.log(" pressed down");
         }
     })
 }
-
 Player.onDisconnect = function(socket)
 {
     delete Player.list[socket.id];
 }
-
 Player.update = function(){
     var pack = [];
     for(var i in Player.list){
@@ -118,6 +109,7 @@ Player.update = function(){
     return pack;
 }
 
+/* Bullet */
 var Bullet = function(angle){
     var self = Entity();
     self.id = Math.random();
@@ -134,7 +126,6 @@ var Bullet = function(angle){
     }
     Bullet.list[self.id] = self;
 }
-
 Bullet.list = {};
 Bullet.update = function(){
     if(Math.random() < 0.1)
@@ -152,6 +143,8 @@ Bullet.update = function(){
     return pack;
 }
 
+/* Server to Client communication */
+var DEBUG = true;
 var io = require('socket.io') (serv, {});  
 io.sockets.on('connection', function(socket){
     socket.id = Math.random();
@@ -169,8 +162,16 @@ io.sockets.on('connection', function(socket){
             SOCKET_LIST[i].emit('addToChat', playerName+': ' + data);
         }
     });
+    
+    socket.on('evalServer', function(data) {
+        if(!DEBUG)
+            return;
+        var res = eval(data);
+        socket.emit('evalAnswer', res);
+    });
 });
 
+/* Update */
 setInterval(function(){
 var pack = {
     player:Player.update(),
