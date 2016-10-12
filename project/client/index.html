@@ -3,8 +3,21 @@
 <body>
 
 <h1>Testing Socket connection</h1>
-    
-<canvas id="ctx" width="500" height="500" style="border:1px solid #000000;"></canvas>
+debugger: <a id="debugger">debugger</a>
+    <br>
+debugger2: <a id="debugger2">debugger2</a>
+    <br>
+debugger3: <a id="debugger3">debugger3</a>
+    <br>
+debugger4: <a id="debugger4">debugger4</a>
+    <br>
+debugger5: <a id="debugger5">debugger5</a>
+    <br>
+debugger6: <a id="debugger6">debugger6</a>
+
+<br>
+
+<center><canvas id="ctx" width="750" height="500" style="border:1px solid #000000;"></canvas></center>
 
 <div id="chat-text" style="width:500px;
                            height:100px;
@@ -22,6 +35,11 @@
     var chatInput = document.getElementById('chat-input');
     var chatForm = document.getElementById('chat-form');
     var ctx = document.getElementById("ctx").getContext("2d");
+    var playerX = 0;
+    var playerY = 0;
+    var x_pos = 0;
+    var y_pos = 0;
+    var isMouseDown = false;
     ctx.font = '30px Arial';
     
 	var socket = io();
@@ -46,11 +64,8 @@
     chatForm.onsubmit = function(e){
         e.preventDefault();
         if(chatInput.value[0] === '/') {
-        console.log("eval sent");
             socket.emit('evalServer', chatInput.value.slice(1));
         } else {
-            
-        console.log("message sent");
             socket.emit('sendMsgToServer', chatInput.value);
         }
         chatInput.value = '';
@@ -77,6 +92,58 @@
         else if(event.keyCode == 87)    // w
             socket.emit('keyPress', {inputId:'up', state:false});
     }
+    
+    document.onmousedown = function(event){
+        document.getElementById("debugger2").innerHTML = "onMouseUp:  false";
+        document.getElementById("debugger3").innerHTML = "onMouseDown true";
+        isMouseDown = true;
+    }
+    
+    document.onmouseup = function(event){
+        var mousePos = getMousePos(canvas, event);
+        var x = Math.floor(mousePos.x);
+        var y = Math.floor(mousePos.y);
+        isMouseDown = false;
+        socket.emit('keyPress', {inputId:'attack', 
+                                 state:false, 
+                                 mousePosX:x, 
+                                 mousePosY:y});    
+        
+        document.getElementById("debugger4").innerHTML = "sending  :  false ";
+        document.getElementById("debugger2").innerHTML = "onMouseUp:  true";
+        document.getElementById("debugger3").innerHTML = "onMouseDown false";
+    }
+    
+    document.onmousemove = function(event){
+        var mousePos = getMousePos(canvas, event);
+        var x = Math.floor(mousePos.x);
+        var y = Math.floor(mousePos.y);
+        x_pos = x;
+        y_pos = y;
+        document.getElementById("debugger").innerHTML = "<br>---x:"+x+"/"+ ctx.canvas.width +"<br>---y:"+y +"/"+ctx.canvas.height;
+        var isSending = (!(x_pos < 0 || x_pos > ctx.canvas.width || y_pos < 0 || y_pos > ctx.canvas.height));
+        
+        if(isSending && isMouseDown)
+        {
+            document.getElementById("debugger4").innerHTML = "sending  :  true ";
+            socket.emit('keyPress', {inputId:'attack', 
+                                     state:true, 
+                                     mousePosX:x_pos, 
+                                     mousePosY:y_pos}); 
+        }
+    }
+    
+    var canvas = document.getElementById('ctx');
+    var context = canvas.getContext('2d');
+    
+    function getMousePos(canvas, evt) {
+        var rect = canvas.getBoundingClientRect();
+        return {
+          x: evt.clientX - rect.left,
+          y: evt.clientY - rect.top
+        };
+    }
+    
 </script>
 
 </body>

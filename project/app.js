@@ -11,10 +11,11 @@ var io = require('socket.io') (serv, {});
 var SOCKET_LIST = {};
 
 /* Entity */
-var Entity = function(){
+var Entity = function(posX, posY)
+{
     var self = {
-        x:250,
-        y:250,
+        x:posX,
+        y:posY,
         spdX:0,
         spdY:0,
         id:"",
@@ -31,37 +32,64 @@ var Entity = function(){
     }
     return self;
 }
+
 /* Player */
 var Player = function(id){
-    var self = Entity();
+    var self = Entity(250,250);
     self.id=id;
     self.number= "" + Math.floor(10*Math.random());
     self.pressingRight=false;
     self.pressingLeft=false;
     self.pressingUp=false;
     self.pressingDown=false;
+    self.pressingAttack = false;
+    self.mousePosX = 0;
+    self.mousePosY = 0;
     self.maxSpd=10;
     
     var super_update = self.update;
     self.update = function(){
         self.updateSpd();
         super_update();
+   
+        
+//        console.log("isPressingAttack: " + self.pressingAttack);
+        if(self.pressingAttack)
+        {
+            self.shootBullet(self.mousePosX, self.mousePosY);
+        }
+    }
+    self.shootBullet = function(mousePosX, mousePosY){
+        var b = Bullet(mousePosX, mousePosY, self.x, self.y);
     }
     
-    self.updateSpd = function(){
+    self.updateSpd = function()
+    {
         if(self.pressingRight)
+        {
             self.spdX = self.maxSpd;
+        }
         else if(self.pressingLeft)
+        {
             self.spdX = -self.maxSpd;
+        }
         else
+        {
             self.spdX = 0;
+        }
         
         if(self.pressingUp)
+        {
             self.spdY = -self.maxSpd;
+        }
         else if(self.pressingDown)
+        {
             self.spdY = self.maxSpd;
+        }
         else
+        {
             self.spdY = 0;
+        }
     }
     
     Player.list[id] = self;
@@ -72,7 +100,6 @@ Player.onConnect = function(socket)
 {
     var player = Player(socket.id);
     socket.on('keyPress', function(data){
-        console.log("id:" + socket.id + "x:" + Player.list[socket.id].x + "y:" + Player.list[socket.id].y);
         if(data.inputId === 'left')
         {
             player.pressingLeft = data.state;
@@ -89,12 +116,20 @@ Player.onConnect = function(socket)
         {
             player.pressingDown = data.state;
         }
+        else if(data.inputId === 'attack')
+        {
+            player.pressingAttack = data.state;
+            player.mousePosX = data.mousePosX;
+            player.mousePosY = data.mousePosY;
+        }
     })
 }
+
 Player.onDisconnect = function(socket)
 {
     delete Player.list[socket.id];
 }
+
 Player.update = function(){
     var pack = [];
     for(var i in Player.list){
@@ -103,34 +138,48 @@ Player.update = function(){
         pack.push({
             x:player.x, 
             y:player.y,
-            number:player.number
+            number:player.number,
         });
     }
     return pack;
 }
 
+// angle in radians
+var angleDegree = function(p1_x, p1_y, p2_x, p2_y)
+{
+    return Math.atan2(p2_y - p1_y, p2_x - p1_x) * 180 / Math.PI
+};
+
+
+var angleRadian = function(p1_x, p1_y, p2_x, p2_y)
+{
+    return Math.atan2(p2_y - p1_y, p2_x - p1_x);
+}
+
 /* Bullet */
-var Bullet = function(angle){
-    var self = Entity();
+var Bullet = function(mousePosX, mousePosY, startX, startY){
+    var self = Entity(startX,startY);
+    var speed = 40;
+    var angle = angleRadian(-mousePosX, -mousePosY, -startX, -startY);
+
     self.id = Math.random();
-    self.spdX = Math.cos(angle/180*Math.PI) * 10;
-    self.spdY = Math.sin(angle/180*Math.PI) * 10;
-    
+    self.spdX = getXSpeed(angle, speed);
+    self.spdY = getYSpeed(angle, speed);
     self.timer = 0;
     self.toRemove = false;
+    
     var super_update = self.update;
+    
     self.update = function(){
         if(self.timer++ > 100)
             self.toRemove = true;
         super_update();
     }
+    
     Bullet.list[self.id] = self;
 }
 Bullet.list = {};
 Bullet.update = function(){
-    if(Math.random() < 0.1)
-        Bullet(Math.random()*360);
-    
     var pack = [];
     for(var i in Bullet.list){
         var bullet = Bullet.list[i];
@@ -141,6 +190,45 @@ Bullet.update = function(){
         });
     }
     return pack;
+}
+
+var getXSpeed = function(angle, distance) {
+    return distance * Math.cos(angle);
+}
+var getYSpeed = function(angle, distance) {
+    return distance * Math.sin(angle);
+
+}
+
+// var getQuadrant = function(mousePosX, mousePosY, startX, startY){
+//     var x = mousePosX - startY;
+//     var y = mousePosY - startY;
+    
+//     if(x == 0 && y == 0){
+//         // do nothing - center point
+//     }else if(x == 0 && y > 0){
+//         return 
+//     }
+//     if(x >= 0 && y >= 0){
+//         return 4;  // bottom right
+//     }else if(x < 0 && y >= 0){
+//         return 3;  // bottom left
+//     }else if(x < 0 && y < 0){
+//         return 2;  // top left
+//     }else{ 
+//         return 1;  // top right 
+//     }
+// }
+
+var circleSection = {
+    UP : "up",
+    RIGHT : "right",
+    DOWN : "down",
+    LEFT : "left",
+    UP_RIGHT : "up-right",
+    UP_LEFT : "up-left",
+    DOWN_RIGHT : "down-right",
+    DOWN_LEFT : "done-left"
 }
 
 /* Server to Client communication */
@@ -159,7 +247,7 @@ io.sockets.on('connection', function(socket){
     socket.on('sendMsgToServer', function(data) {
         var playerName = ("" + socket.id).slice(2,7);
         for(var i in SOCKET_LIST){
-            SOCKET_LIST[i].emit('addToChat', playerName+': ' + data);
+            SOCKET_LIST[i].emit('addToChat', playerName + ': ' + data);
         }
     });
     
@@ -173,11 +261,10 @@ io.sockets.on('connection', function(socket){
 
 /* Update */
 setInterval(function(){
-var pack = {
-    player:Player.update(),
-    bullet:Bullet.update(),
-}
-
+    var pack = {
+        player:Player.update(),
+        bullet:Bullet.update(),
+    }
     for(var i in SOCKET_LIST){
         var socket = SOCKET_LIST[i];
         socket.emit('newPositions', pack);
