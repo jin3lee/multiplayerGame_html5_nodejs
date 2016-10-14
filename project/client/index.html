@@ -39,6 +39,7 @@ debugger6: <a id="debugger6">debugger6</a>
     var playerY = 0;
     var x_pos = 0;
     var y_pos = 0;
+    var IS_INSIDE = false;
     var isMouseDown = false;
     ctx.font = '30px Arial';
     
@@ -121,11 +122,11 @@ debugger6: <a id="debugger6">debugger6</a>
         x_pos = x;
         y_pos = y;
         document.getElementById("debugger").innerHTML = "<br>---x:"+x+"/"+ ctx.canvas.width +"<br>---y:"+y +"/"+ctx.canvas.height;
-        var isSending = (!(x_pos < 0 || x_pos > ctx.canvas.width || y_pos < 0 || y_pos > ctx.canvas.height));
+        document.getElementById("debugger3").innerHTML = "isInsideCanvas(" + x + "," + y + ") = " + isInsideCanvas(x,y);
         
-        if(isSending && isMouseDown)
+        if(isInsideCanvas(x, y) && isMouseDown)
         {
-            document.getElementById("debugger4").innerHTML = "sending  :  true ";
+            document.getElementById("debugger4").innerHTML = "sending  :  true  isInsideCanvas()=" + isInsideCanvas(x, y);
             socket.emit('keyPress', {inputId:'attack', 
                                      state:true, 
                                      mousePosX:x_pos, 
@@ -133,6 +134,18 @@ debugger6: <a id="debugger6">debugger6</a>
         }
     }
     
+    var isInsideCanvas = function() {
+        return (isYInCanvas() && isXInCanvas());
+    }
+
+    var isYInCanvas = function (){
+        return (y_pos >= 0 && y_pos <= ctx.canvas.height);
+    }
+
+    var isXInCanvas = function (){
+        return (x_pos >= 0 && x_pos <= ctx.canvas.width);
+    }
+
     var canvas = document.getElementById('ctx');
     var context = canvas.getContext('2d');
     
