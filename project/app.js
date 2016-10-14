@@ -220,15 +220,21 @@ var getYSpeed = function(angle, distance) {
 //     }
 // }
 
-var circleSection = {
-    UP : "up",
-    RIGHT : "right",
-    DOWN : "down",
-    LEFT : "left",
-    UP_RIGHT : "up-right",
-    UP_LEFT : "up-left",
-    DOWN_RIGHT : "down-right",
-    DOWN_LEFT : "done-left"
+var USERS = {
+    // username:password
+    "bob":"asdf",
+    "bob2":"bob",
+    "bob3":"ttt",
+}
+
+var isValidPassword = function(data){
+    return USERS[data.username] === data.password;
+}
+var isUsernameTaken = function(data){
+    return USERS[data.username];
+}
+var addUser = function(data){
+    return USERS[data.username] = data.password;
 }
 
 /* Server to Client communication */
@@ -238,8 +244,26 @@ io.sockets.on('connection', function(socket){
     socket.id = Math.random();
     SOCKET_LIST[socket.id] = socket;
     
-    Player.onConnect(socket);
-	socket.on('disconnect', function(){
+    socket.on('signIn', function(data){
+        if(isValidPassword(data)){
+            Player.onConnect(socket);
+            socket.emit('signInResponse',{success:true});
+        }else{
+            socket.emit('signInResponse',{success:false});
+        }
+    });
+
+    socket.on('signUp', function(data){
+        if(isUsernameTaken(data)){
+            socket.emit('signUpResponse',{success:false})
+        }else{
+            addUser(data);
+            socket.emit('signUpResponse',{success:true})
+        }
+
+    });
+
+    socket.on('disconnect', function(){
         delete SOCKET_LIST[socket.id];
         Player.onDisconnect(socket);
     });

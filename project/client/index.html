@@ -2,35 +2,83 @@
 <html>
 <body>
 
-<h1>Testing Socket connection</h1>
-debugger: <a id="debugger">debugger</a>
-    <br>
-debugger2: <a id="debugger2">debugger2</a>
-    <br>
-debugger3: <a id="debugger3">debugger3</a>
-    <br>
-debugger4: <a id="debugger4">debugger4</a>
-    <br>
-debugger5: <a id="debugger5">debugger5</a>
-    <br>
-debugger6: <a id="debugger6">debugger6</a>
-
-<br>
-
-<center><canvas id="ctx" width="750" height="500" style="border:1px solid #000000;"></canvas></center>
-
-<div id="chat-text" style="width:500px;
-                           height:100px;
-                           overflow-y:scroll"> <div>hello!</div>
+<div id="signDiv">
+Username: <input id="signDiv-username" type="text"></input><br>
+Password: <input id="signDiv-password" type="password"></input><br>
+<button id="signDiv-signIn">Sign In</button><br>
+<button id="signDiv-signUp">Sign Up</button><br>
 </div>
-    
-<form id="chat-form">
-    <input id="chat-input" type="text" style="width:500px">
-</form>
-    
+
+<p id="demo"></p>
+<button onclick="myFunction()">Click me</button>
+
+<div id="gameDiv" style="display:none;">
+    <h1>Testing Socket connection</h1>
+    debugger: <a id="debugger">debugger</a>
+        <br>
+    debugger2: <a id="debugger2">debugger2</a>
+        <br>
+    debugger3: <a id="debugger3">debugger3</a>
+        <br>
+    debugger4: <a id="debugger4">debugger4</a>
+        <br>
+    debugger5: <a id="debugger5">debugger5</a>
+        <br>
+    debugger6: <a id="debugger6">debugger6</a>
+
+    <br>
+    <canvas id="ctx" width="750" height="500" style="border:1px solid #000000;"></canvas>
+    <div id="chat-text" style="width:500px;
+                               height:100px;
+                               overflow-y:scroll"> <div>hello!</div>
+    </div>
+    <form id="chat-form">
+        <input id="chat-input" type="text" style="width:500px">
+    </form>
+</div>      
     
 <script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+
 <script>
+
+    var socket = io();
+
+    function myFunction() {
+        document.getElementById("demo").innerHTML = "Hello World";
+    }
+
+    //sign
+    var signDivSignIn = document.getElementById('signDiv-signIn');
+    var signDivSignUp = document.getElementById('signDiv-signUp');
+    var signDivUsername = document.getElementById('signDiv-username');
+    var signDivPassword = document.getElementById('signDiv-password');
+    var signDiv = document.getElementById('signDiv');
+
+    // sends password & username to server
+    signDivSignIn.onclick = function(){
+        socket.emit('signIn', {username:signDivUsername.value, password:signDivPassword.value})
+    }
+    signDivSignUp.onclick = function(){
+        socket.emit('signUp', {username:signDivUsername.value, password:signDivPassword.value})
+    }
+
+    // server sign in response displays game
+    socket.on('signInResponse', function(data){
+        if(data.success){
+            signDiv.style.display = 'none';
+            gameDiv.style.display = 'inline-block';
+        } else
+            alert("Sign in unsuccessful");
+    });
+    // server up response allows user to know they are signed up
+    socket.on('signUpResponse', function(data){
+        if(data.success){
+            alert("Successful signed up");
+        } else
+            alert("Unsuccessfully signed up");
+    });
+
+    // game
     var chatText = document.getElementById('chat-text');
     var chatInput = document.getElementById('chat-input');
     var chatForm = document.getElementById('chat-form');
@@ -43,7 +91,6 @@ debugger6: <a id="debugger6">debugger6</a>
     var isMouseDown = false;
     ctx.font = '30px Arial';
     
-	var socket = io();
     
 	socket.on('newPositions', function(data){
         ctx.clearRect(0,0,500,500);
