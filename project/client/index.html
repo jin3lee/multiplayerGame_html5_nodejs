@@ -2,17 +2,20 @@
 <html>
 <body>
 
-<div id="signDiv">
-Username: <input id="signDiv-username" type="text"></input><br>
-Password: <input id="signDiv-password" type="password"></input><br>
-<button id="signDiv-signIn">Sign In</button><br>
-<button id="signDiv-signUp">Sign Up</button><br>
+<a id="debug" >hi</a>
+<p id="demo">demo</p>
+    
+<div id = "signDiv">
+    Username: <input id="signDiv-username" type="text"><br>
+    Password: <input id="signDiv-password" type="password"><br>
+    <button id="signDiv-signIn" onclick="trySignIn()">Sign In</button>
+    <button id="signDiv-signUp">Sign Up</button>
+    <button onclick="myFunction()">Click me</button>
 </div>
 
-<p id="demo"></p>
-<button onclick="myFunction()">Click me</button>
 
-<div id="gameDiv" style="display:none;">
+<div id = "gameDiv" style="display:none;">
+
     <h1>Testing Socket connection</h1>
     debugger: <a id="debugger">debugger</a>
         <br>
@@ -25,184 +28,172 @@ Password: <input id="signDiv-password" type="password"></input><br>
     debugger5: <a id="debugger5">debugger5</a>
         <br>
     debugger6: <a id="debugger6">debugger6</a>
-
     <br>
+
     <canvas id="ctx" width="750" height="500" style="border:1px solid #000000;"></canvas>
+
     <div id="chat-text" style="width:500px;
                                height:100px;
                                overflow-y:scroll"> <div>hello!</div>
     </div>
+        
     <form id="chat-form">
         <input id="chat-input" type="text" style="width:500px">
     </form>
-</div>      
+</div>
     
 <script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
-
+    
 <script>
 
-    var socket = io();
-
-    function myFunction() {
-        document.getElementById("demo").innerHTML = "Hello World";
-    }
-
-    //sign
-    var signDivSignIn = document.getElementById('signDiv-signIn');
-    var signDivSignUp = document.getElementById('signDiv-signUp');
-    var signDivUsername = document.getElementById('signDiv-username');
-    var signDivPassword = document.getElementById('signDiv-password');
-    var signDiv = document.getElementById('signDiv');
-
-    // sends password & username to server
-    signDivSignIn.onclick = function(){
-        socket.emit('signIn', {username:signDivUsername.value, password:signDivPassword.value})
-    }
-    signDivSignUp.onclick = function(){
-        socket.emit('signUp', {username:signDivUsername.value, password:signDivPassword.value})
-    }
-
-    // server sign in response displays game
-    socket.on('signInResponse', function(data){
-        if(data.success){
-            signDiv.style.display = 'none';
-            gameDiv.style.display = 'inline-block';
-        } else
-            alert("Sign in unsuccessful");
-    });
-    // server up response allows user to know they are signed up
-    socket.on('signUpResponse', function(data){
-        if(data.success){
-            alert("Successful signed up");
-        } else
-            alert("Unsuccessfully signed up");
-    });
-
-    // game
-    var chatText = document.getElementById('chat-text');
-    var chatInput = document.getElementById('chat-input');
-    var chatForm = document.getElementById('chat-form');
-    var ctx = document.getElementById("ctx").getContext("2d");
-    var playerX = 0;
-    var playerY = 0;
-    var x_pos = 0;
-    var y_pos = 0;
-    var IS_INSIDE = false;
-    var isMouseDown = false;
-    ctx.font = '30px Arial';
-    
-    
-	socket.on('newPositions', function(data){
-        ctx.clearRect(0,0,500,500);
-        for(var i = 0; i < data.player.length; i++){
-            ctx.fillText(data.player[i].number, data.player[i].x, data.player[i].y);
-        }
-        for(var i = 0; i < data.bullet.length; i++){
-            ctx.fillRect(data.bullet[i].x-5, data.bullet[i].y-5, 10,10);
-        }
-    });
-    
-    socket.on('addToChat', function(data){
-        chatText.innerHTML += '<div>' + data + '</div>';
-    })
-    socket.on('evalAnswer', function(data){
-        console.log(data);
-    })
-    
-    chatForm.onsubmit = function(e){
-        e.preventDefault();
-        if(chatInput.value[0] === '/') {
-            socket.emit('evalServer', chatInput.value.slice(1));
-        } else {
-            socket.emit('sendMsgToServer', chatInput.value);
-        }
-        chatInput.value = '';
-    }
-    
-    document.onkeydown = function(event){
-        if(event.keyCode == 68)         // d
-            socket.emit('keyPress', {inputId:'right', state:true});
-        else if(event.keyCode == 83)    // s
-            socket.emit('keyPress', {inputId:'down', state:true});
-        else if(event.keyCode == 65)    // a
-            socket.emit('keyPress', {inputId:'left', state:true});
-        else if(event.keyCode == 87)    // w
-            socket.emit('keyPress', {inputId:'up', state:true});
-    }
-    
-    document.onkeyup = function(event){
-        if(event.keyCode == 68)         // d
-            socket.emit('keyPress', {inputId:'right', state:false});
-        else if(event.keyCode == 83)    // s
-            socket.emit('keyPress', {inputId:'down', state:false});
-        else if(event.keyCode == 65)    // a
-            socket.emit('keyPress', {inputId:'left', state:false});
-        else if(event.keyCode == 87)    // w
-            socket.emit('keyPress', {inputId:'up', state:false});
-    }
-    
-    document.onmousedown = function(event){
-        document.getElementById("debugger2").innerHTML = "onMouseUp:  false";
-        document.getElementById("debugger3").innerHTML = "onMouseDown true";
-        isMouseDown = true;
-    }
-    
-    document.onmouseup = function(event){
-        var mousePos = getMousePos(canvas, event);
-        var x = Math.floor(mousePos.x);
-        var y = Math.floor(mousePos.y);
-        isMouseDown = false;
-        socket.emit('keyPress', {inputId:'attack', 
-                                 state:false, 
-                                 mousePosX:x, 
-                                 mousePosY:y});    
         
-        document.getElementById("debugger4").innerHTML = "sending  :  false ";
-        document.getElementById("debugger2").innerHTML = "onMouseUp:  true";
-        document.getElementById("debugger3").innerHTML = "onMouseDown false";
-    }
-    
-    document.onmousemove = function(event){
-        var mousePos = getMousePos(canvas, event);
-        var x = Math.floor(mousePos.x);
-        var y = Math.floor(mousePos.y);
-        x_pos = x;
-        y_pos = y;
-        document.getElementById("debugger").innerHTML = "<br>---x:"+x+"/"+ ctx.canvas.width +"<br>---y:"+y +"/"+ctx.canvas.height;
-        document.getElementById("debugger3").innerHTML = "isInsideCanvas(" + x + "," + y + ") = " + isInsideCanvas(x,y);
-        
-        if(isInsideCanvas(x, y) && isMouseDown)
-        {
-            document.getElementById("debugger4").innerHTML = "sending  :  true  isInsideCanvas()=" + isInsideCanvas(x, y);
+        var socket = io();
+
+        // sign
+        var signDiv = document.getElementById('signDiv');
+        var signDivUsername = document.getElementById('signDiv-username');
+        var signDivSignIn = document.getElementById('signDiv-signIn');
+        var signDivSignUp = document.getElementById('signDiv-signUp');
+        var signDivPassword = document.getElementById('signDiv-password');
+
+        function trySignIn(){
+            document.getElementById("debug").innerHTML = "signIn button pressed";
+            socket.emit('signIn', {username:signDivUsername.value, password:signDivPassword.value});
+        }
+
+        socket.on('signInResponse', function(data)){
+            if(data.success){
+                signDiv.style.display = 'none';
+                gameDiv.style.display = 'inline-block';
+            }
+            else
+                alert("Sign in unsuccessful");
+        }
+
+        // game
+        var chatText = document.getElementById('chat-text');
+        var chatInput = document.getElementById('chat-input');
+        var chatForm = document.getElementById('chat-form');
+        var ctx = document.getElementById("ctx").getContext("2d");
+        var playerX = 0;
+        var playerY = 0;
+        var x_pos = 0;
+        var y_pos = 0;
+        var IS_INSIDE = false;
+        var isMouseDown = false;
+        ctx.font = '30px Arial';
+
+        socket.on('newPositions', function(data){
+            ctx.clearRect(0,0,500,500);
+            for(var i = 0; i < data.player.length; i++){
+                ctx.fillText(data.player[i].number, data.player[i].x, data.player[i].y);
+            }
+            for(var i = 0; i < data.bullet.length; i++){
+                ctx.fillRect(data.bullet[i].x-5, data.bullet[i].y-5, 10,10);lea
+            }
+        });
+
+        socket.on('addToChat', function(data){
+            chatText.innerHTML += '<div>' + data + '</div>';
+        })
+        socket.on('evalAnswer', function(data){
+            console.log(data);
+        })
+
+        chatForm.onsubmit = function(e){
+            e.preventDefault();
+            if(chatInput.value[0] === '/') {
+                socket.emit('evalServer', chatInput.value.slice(1));
+            } else {
+                socket.emit('sendMsgToServer', chatInput.value);
+            }
+            chatInput.value = '';
+        }
+
+        document.onkeydown = function(event){
+            if(event.keyCode == 68)         // d
+                socket.emit('keyPress', {inputId:'right', state:true});
+            else if(event.keyCode == 83)    // s
+                socket.emit('keyPress', {inputId:'down', state:true});
+            else if(event.keyCode == 65)    // a
+                socket.emit('keyPress', {inputId:'left', state:true});
+            else if(event.keyCode == 87)    // w
+                socket.emit('keyPress', {inputId:'up', state:true});
+        }
+
+        document.onkeyup = function(event){
+            if(event.keyCode == 68)         // d
+                socket.emit('keyPress', {inputId:'right', state:false});
+            else if(event.keyCode == 83)    // s
+                socket.emit('keyPress', {inputId:'down', state:false});
+            else if(event.keyCode == 65)    // a
+                socket.emit('keyPress', {inputId:'left', state:false});
+            else if(event.keyCode == 87)    // w
+                socket.emit('keyPress', {inputId:'up', state:false});
+        }
+
+        document.onmousedown = function(event){
+            document.getElementById("debugger2").innerHTML = "onMouseUp:  false";
+            document.getElementById("debugger3").innerHTML = "onMouseDown true";
+            isMouseDown = true;
+        }
+
+        document.onmouseup = function(event){
+            var mousePos = getMousePos(canvas, event);
+            var x = Math.floor(mousePos.x);
+            var y = Math.floor(mousePos.y);
+            isMouseDown = false;
             socket.emit('keyPress', {inputId:'attack', 
-                                     state:true, 
-                                     mousePosX:x_pos, 
-                                     mousePosY:y_pos}); 
+                                     state:false, 
+                                     mousePosX:x, 
+                                     mousePosY:y});    
+
+            document.getElementById("debugger4").innerHTML = "sending  :  false ";
+            document.getElementById("debugger2").innerHTML = "onMouseUp:  true";
+            document.getElementById("debugger3").innerHTML = "onMouseDown false";
         }
-    }
-    
-    var isInsideCanvas = function() {
-        return (isYInCanvas() && isXInCanvas());
-    }
 
-    var isYInCanvas = function (){
-        return (y_pos >= 0 && y_pos <= ctx.canvas.height);
-    }
+        document.onmousemove = function(event){
+            var mousePos = getMousePos(canvas, event);
+            var x = Math.floor(mousePos.x);
+            var y = Math.floor(mousePos.y);
+            x_pos = x;
+            y_pos = y;
+            document.getElementById("debugger").innerHTML = "<br>---x:"+x+"/"+ ctx.canvas.width +"<br>---y:"+y +"/"+ctx.canvas.height;
+            document.getElementById("debugger3").innerHTML = "isInsideCanvas(" + x + "," + y + ") = " + isInsideCanvas(x,y);
 
-    var isXInCanvas = function (){
-        return (x_pos >= 0 && x_pos <= ctx.canvas.width);
-    }
+            if(isInsideCanvas(x, y) && isMouseDown)
+            {
+                document.getElementById("debugger4").innerHTML = "sending  :  true  isInsideCanvas()=" + isInsideCanvas(x, y);
+                socket.emit('keyPress', {inputId:'attack', 
+                                         state:true, 
+                                         mousePosX:x_pos, 
+                                         mousePosY:y_pos}); 
+            }
+        }
 
-    var canvas = document.getElementById('ctx');
-    var context = canvas.getContext('2d');
-    
-    function getMousePos(canvas, evt) {
-        var rect = canvas.getBoundingClientRect();
-        return {
-          x: evt.clientX - rect.left,
-          y: evt.clientY - rect.top
-        };
-    }
+        var isInsideCanvas = function() {
+            return (isYInCanvas() && isXInCanvas());
+        }
+
+        var isYInCanvas = function (){
+            return (y_pos >= 0 && y_pos <= ctx.canvas.height);
+        }
+
+        var isXInCanvas = function (){
+            return (x_pos >= 0 && x_pos <= ctx.canvas.width);
+        }
+
+        var canvas = document.getElementById('ctx');
+        var context = canvas.getContext('2d');
+
+        function getMousePos(canvas, evt) {
+            var rect = canvas.getBoundingClientRect();
+            return {
+              x: evt.clientX - rect.left,
+              y: evt.clientY - rect.top
+            };
+        }
     
 </script>
 
